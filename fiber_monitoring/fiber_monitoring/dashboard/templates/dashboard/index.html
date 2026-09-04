@@ -1,0 +1,292 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiber Optic Infrastructure Monitor - SCADA Console</title>
+    <link rel="stylesheet" href="{% static 'css/operator-console.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%2300d4ff' width='100' height='100' rx='20'/><text x='50' y='50' font-size='60' fill='white' text-anchor='middle' dominant-baseline='central' font-weight='bold'>◆</text></svg>">
+    <style>
+        .app-container {
+            max-width: 1920px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Command Bar -->
+        <header class="command-bar">
+            <div class="brand-section">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L22 8V16L12 22L2 16V8L12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M12 8V14" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M8 10L16 10" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <div class="brand-info">
+                    <h1>Fiber Infrastructure Monitor</h1>
+                    <span class="subtitle">SCADA Operations Console</span>
+                </div>
+            </div>
+            <div class="command-controls">
+                <div class="system-time">
+                    <span class="time-label">SYSTEM TIME</span>
+                    <span class="time-value" id="clock">--:--:--</span>
+                </div>
+                <div class="connection-status" id="connection-pill">
+                    <span class="status-indicator" id="connection-dot"></span>
+                    <span class="status-text" id="connection-text">CONNECTING</span>
+                </div>
+                <button class="audio-toggle" id="sound-toggle" title="Toggle alert audio">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 9V15C3 16.1046 3.89543 17 5 17H9L15 21V3L9 7H5C3.89543 7 3 7.89543 3 9Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M16 7C17.5913 8.47087 18.5 10.4645 18.5 12.5C18.5 14.5355 17.5913 16.5291 16 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Dashboard Grid -->
+        <section class="kpi-grid">
+            <div class="kpi-widget" id="kpi-total">
+                <div class="kpi-header">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="8" height="8" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="13" y="3" width="8" height="8" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="3" y="13" width="8" height="8" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="13" y="13" width="8" height="8" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    <span class="kpi-label">Total Events</span>
+                </div>
+                <div class="kpi-value" id="total-alerts">{{ stats.total_alerts }}</div>
+                <div class="kpi-trend healthy">Stable</div>
+            </div>
+
+            <div class="kpi-widget critical" id="kpi-alarms">
+                <div class="kpi-header">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 20H22L12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                        <circle cx="12" cy="15" r="1" fill="currentColor"/>
+                        <path d="M12 10V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <span class="kpi-label">Critical</span>
+                </div>
+                <div class="kpi-value" id="active-alarms">{{ stats.active_alarms }}</div>
+                <div class="kpi-trend critical">Active</div>
+            </div>
+
+            <div class="kpi-widget warning" id="kpi-warnings">
+                <div class="kpi-header">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 20H22L12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                        <circle cx="12" cy="15" r="0.8" fill="currentColor"/>
+                        <path d="M12 10V13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <span class="kpi-label">Warning</span>
+                </div>
+                <div class="kpi-value" id="active-warnings">{{ stats.active_warnings }}</div>
+                <div class="kpi-trend warning">Monitoring</div>
+            </div>
+
+            <div class="kpi-widget" id="kpi-pending">
+                <div class="kpi-header">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M12 7V12L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <span class="kpi-label">Unack</span>
+                </div>
+                <div class="kpi-value" id="unacknowledged">{{ stats.unacknowledged }}</div>
+                <div class="kpi-trend pending">Pending</div>
+            </div>
+
+            <div class="kpi-widget risk-widget" id="kpi-risk">
+                <div class="kpi-header">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 3L20 7V12C20 17 16.5 20 12 21C7.5 20 4 17 4 12V7L12 3Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M12 8V13M12 16H12.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <span class="kpi-label">Risk Index</span>
+                </div>
+                <div class="kpi-value" id="risk-index">--</div>
+                <div class="kpi-trend pending" id="risk-label">Awaiting telemetry</div>
+            </div>
+        </section>
+
+        <!-- Main Operator Console -->
+        <main class="console-layout">
+            <!-- Left Analytics Panel -->
+            <aside class="side-panel left-panel">
+                <div class="panel-section">
+                    <h3 class="section-title">System Telemetry</h3>
+                    
+                    <div class="metric-block">
+                        <div class="metric-header">
+                            <span class="metric-name">CPU Load</span>
+                            <span class="metric-value" id="metric-cpu">45%</span>
+                        </div>
+                        <canvas id="chart-cpu" class="sparkline-chart"></canvas>
+                        <div class="metric-status healthy">NORMAL</div>
+                    </div>
+
+                    <div class="metric-block">
+                        <div class="metric-header">
+                            <span class="metric-name">Network I/O</span>
+                            <span class="metric-value" id="metric-network">62%</span>
+                        </div>
+                        <canvas id="chart-network" class="sparkline-chart"></canvas>
+                        <div class="metric-status warning">CAUTION</div>
+                    </div>
+
+                    <div class="metric-block">
+                        <div class="metric-header">
+                            <span class="metric-name">Signal Latency</span>
+                            <span class="metric-value" id="metric-latency">28ms</span>
+                        </div>
+                        <canvas id="chart-latency" class="sparkline-chart"></canvas>
+                        <div class="metric-status healthy">OPTIMAL</div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3 class="section-title">Zones Configuration</h3>
+                    <select id="zone-select" class="zone-select">
+                        {% for zone in zones %}
+                        <option value="{{ zone.id }}" data-topic="{{ zone.topic }}" data-max="{{ zone.max_distance_meters }}">{{ zone.name }}</option>
+                        {% empty %}
+                        <option value="default" data-topic="eskom/alerts/zone1" data-max="2500">Zone 1</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="panel-section fleet-health">
+                    <h3 class="section-title">Device Fleet</h3>
+                    <div class="fleet-row"><span>MQTT gateways</span><strong id="mqtt-device-count">--</strong></div>
+                    <div class="fleet-row"><span>USB / serial feeds</span><strong id="usb-device-count">--</strong></div>
+                    <div class="fleet-row"><span>Last device</span><strong id="last-device">Awaiting</strong></div>
+                </div>
+            </aside>
+
+            <!-- Center Monitoring Area -->
+            <section class="center-monitor">
+                <!-- Live Status Panel -->
+                <div class="panel monitor-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Live System Status</span>
+                        <span class="live-indicator pulse">ACTIVE</span>
+                    </div>
+                    <div class="monitor-content" id="alert-display">
+                        <div class="status-idle">
+                            <div class="status-icon">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+                                    <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <p class="status-text">System Nominal</p>
+                            <span class="status-detail">All zones operating within parameters</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cable Route Visualizer -->
+                <div class="panel route-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Route Analysis</span>
+                        <span class="route-distance" id="distance-readout">-- m</span>
+                    </div>
+                    <div class="route-track">
+                        <div class="track-line" id="fiber-line"></div>
+                        <div class="track-breach hidden" id="breach-marker">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-labels">
+                        <span class="label-start">0m</span>
+                        <span class="label-end" id="max-distance-label">2500m</span>
+                    </div>
+                </div>
+
+                <div class="panel route-panel" style="margin-top: 16px;">
+                    <div class="panel-header">
+                        <span class="panel-title">Cut Location</span>
+                        <span class="route-distance" id="location-readout">No coordinates</span>
+                    </div>
+                    <div id="map-box" style="height: 170px; border-radius: 12px; overflow: hidden; background: linear-gradient(160deg, #0e1b2a, #112b3c); position: relative; border: 1px solid rgba(255,255,255,0.08);">
+                        <div id="map-pin" style="position:absolute; left:50%; top:50%; transform: translate(-50%, -50%); width: 18px; height: 18px; border-radius: 50%; background: #ff4d6d; border: 3px solid #fff; box-shadow: 0 0 20px rgba(255,77,109,0.7); display:none;"></div>
+                        <div style="position:absolute; inset:0; background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 22px 22px; opacity: 0.5;"></div>
+                    </div>
+                    <div class="track-labels">
+                        <span class="label-start" id="location-label">GPS offline</span>
+                        <span class="label-end" id="location-coords">--</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Events Panel -->
+            <aside class="side-panel right-panel">
+                <div class="panel events-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Event Log</span>
+                        <div class="filter-tabs">
+                            <button class="filter-tab active" data-filter="all">All</button>
+                            <button class="filter-tab" data-filter="ALARM">Critical</button>
+                            <button class="filter-tab" data-filter="WARNING">Warning</button>
+                        </div>
+                    </div>
+                    <div class="events-list" id="alerts-tbody">
+                        <div class="event-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <p>No events recorded</p>
+                            <span>Waiting for sensor telemetry...</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- System Footer -->
+        <footer class="system-footer">
+            <div class="footer-section">
+                <span class="footer-label">MQTT</span>
+                <span class="footer-value">{{ mqtt_broker }}:{{ mqtt_port }}</span>
+            </div>
+            <div class="footer-section">
+                <span class="footer-label">WEBSOCKET</span>
+                <span class="footer-value" id="ws-status">Disconnected</span>
+            </div>
+            <div class="footer-section">
+                <span class="footer-label">DATABASE</span>
+                <span class="footer-value">Connected</span>
+            </div>
+            <div class="footer-section">
+                <span class="footer-label">UPTIME</span>
+                <span class="footer-value" id="uptime">00:00:00</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="{% static 'js/sparkline.js' %}"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=change-me-in-production-very-long-random-string
+      - DEBUG=True
+      - REDIS_HOST=redis
+      - MQTT_BROKER=broker.hivemq.com
+      - MQTT_PORT=1883
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runmqtt &
+             daphne -b 0.0.0.0 -p 8000 fiber_monitoring.asgi:application"
